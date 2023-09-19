@@ -1,0 +1,37 @@
+---
+- name: Create Partition and Format Disk
+  parted:
+    device: "{{ disk_device }}"
+    number: 1
+    flags: [lvm]
+    state: present
+    part_type: primary
+    align: optimal
+  ignore_errors: yes
+
+- name: Format Partition as XFS
+  command: "mkfs.xfs -f {{ disk_device }}"
+  ignore_errors: yes
+
+- name: Create Mount Point for Data
+  file:
+    path: "{{ mount_point }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Get disk UUID
+  command: "blkid -s UUID -o value {{ disk_device }}"
+  register: blkid_output
+
+- name: Add Entry to /etc/fstab
+  lineinfile:
+    path: /etc/fstab
+    line: "UUID={{ blkid_output.stdout }}  {{ mount_point }}  xfs  defaults  0 0"
+    state: present
+    backup: yes
+    # validate: "cat /etc/fstab | grep -q -F \"%s\""
+    
+- name: Mount Partition to {{ mount_point }}
+  command: "mount {{ disk_device }} {{ mount_point }}"

@@ -1,0 +1,12 @@
+---
+- name: Automate Disk Configuration
+  hosts: new
+  remote_user: root
+  become: yes
+
+  vars:
+    disk_device: "/dev/sdb"
+    mount_point: "/data"
+
+  roles:
+    - partition_format
