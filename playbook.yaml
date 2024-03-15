@@ -1,12 +1,134 @@
 ---
-- name: Automate Disk Configuration
-  hosts: new
+- name: Setup new VMs and install k3s 
+  hosts: servers,agents
   remote_user: root
   become: yes
 
-  vars:
-    disk_device: "/dev/sdb"
-    mount_point: "/data"
-
   roles:
-    - partition_format
+    - role: setup_vm
+      vars:
+        eth_conn: eth0
+        dns_servers:
+            - 123.123.123.123
+    - role: partition_format
+      vars:
+        disk_device: /dev/sdb
+        mount_point: /data
+    - role: configure_docker
+      vars:
+        docker_username: FAKEUSER # replace accordingly
+        docker_password: FAKEPASSWORD # replace accordingly
+        docker_private_repo: private.abc.com
+        docker_rpm_tar_download: http://private.abc.com/docker-v24.0.6.tar
+    - role: install_k3s
+      vars:
+        k3s_repo_url: http://private.abc.com/k3s/v1.28.7
+        k3s_image_name: k3s-airgap-images-amd64.tar.gz
+        k3s_cluster_secret: 
+        k3s_master_server_name: k3s-server-1
+        k3s_tls_san: 123.123.123.111,lb.abc.net
+        k3s_lb_url: lb.abc.net
+        k3s_selinux_rpm_path: http://private.abc.com/k3s-selinux-1.4-1.el7.noarch.rpm
+        private_docker_repo: private.abc.com
+    # - uninstall_k3s
+    
+- name: Set up k3s load balancer
+  hosts: load_balancers  
+  remote_user: root
+  become: yes
+  
+  roles:
+    - role: setup_vm
+      vars:
+        eth_conn: eth0
+        dns_servers:
+            - 123.123.123.123
+    - role: partition_format
+      vars:
+        disk_device: /dev/sdb
+        mount_point: /data
+    - role: configure_docker
+      vars:
+        docker_username: FAKEUSER # replace accordingly
+        docker_password: FAKEPASSWORD # replace accordingly
+        docker_private_repo: private.abc.com
+        docker_rpm_tar_download: http://private.abc.com/docker-v24.0.6.tar
+    - configure_k3s_lb
+    
+- name: Set up gitlab runner
+  hosts: gitlab_runners
+  remote_user: root
+  become: yes
+  
+  roles:
+    - role: setup_vm
+      vars:
+        eth_conn: eth0
+        dns_servers:
+            - 123.123.123.123
+    - role: partition_format
+      vars:
+        disk_device: /dev/sdb
+        mount_point: /data
+    - role: configure_docker
+      vars:
+        docker_username: FAKEUSER # replace accordingly
+        docker_password: FAKEPASSWORD # replace accordingly
+        docker_private_repo: private.abc.com
+        docker_rpm_tar_download: http://private.abc.com/docker-v24.0.6.tar
+    - role: configure_gitlab_runner
+      vars:
+        data_directory: /data
+        
+             
+- name: Install kube monitoring stack
+  hosts: servers
+  remote_user: root
+  become: yes
+  
+  roles:
+    - role: install_monitoring_stack
+      vars: 
+        helm_repo_url: http://private.abc.com/helm
+        helm_repo_download_path: http://private.abc.com/helm-v3.14.2-linux-amd64.tar.gz
+            
+            
+- name: Set up couchbase
+  hosts: couchbase
+  remote_user: root
+  become: yes
+  
+  roles:
+    - role: setup_vm
+      vars:
+        eth_conn: eth0
+        dns_servers:
+            - 123.123.123.123
+    - role: install_couchbase
+      vars:
+        couch_rpm_download_path: http://private.abc.com/rise-7.0.3-centos7.x86_64.rpm
+  
+- name: Create SSH keys
+  hosts: localhost
+  connection: local
+  
+  tasks:
+    - name: Create SSH keys
+      openssh_keypair:
+        path: ~/.ssh/id_rsa_bdai
+        type: rsa
+        state: present
+    - name: Add key to SSH agent
+      shell: eval `ssh-agent` && ssh-add ~/.ssh/id_rsa_bdai
+    
+- name: Copy SSH keys to remote hosts
+  hosts: load_balancers, servers, agents, couchbase, gitlab_runners
+  remote_user: root
+  become: yes
+
+  tasks:
+    - name: Copy SSH keys
+      authorized_key:
+        user: root
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa_bdai.pub') }}"

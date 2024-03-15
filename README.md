@@ -11,5 +11,6 @@ Playbooks are in <cwd>
 ```
 docker run -v <cwd>:/workspace -it ansible:6.4.0 bash
 cd /workspace
-ansible-playbook -k -i inventory playbook.yaml 
+export ANSIBLE_HOST_KEY_CHECKING=False
+ansible-playbook -k -i inventory.ini playbook.yaml 
 ```

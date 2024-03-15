@@ -1,0 +1,2 @@
+disk_device: "/dev/sdb"
+mount_point: "/data"

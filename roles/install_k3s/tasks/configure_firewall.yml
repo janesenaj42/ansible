@@ -1,0 +1,96 @@
+---
+# The following ports recommendations are from k3s website
+
+# - name: Allow port 80 for http traffic
+  # firewalld:
+    # port: 80/tcp
+    # permanent: yes
+    # state: enabled
+    
+# - name: Allow port 443 for https traffic
+  # firewalld:
+    # port: 443/tcp
+    # permanent: yes
+    # state: enabled
+    
+# - name: Allow port 2379-2380 for HA with embedded etcd on Servers
+  # firewalld:
+    # port: 2379-2380/tcp
+    # permanent: yes
+    # state: enabled
+  # when: "'servers' in group_names"
+  
+# - name: Allow port 6443 for apiserver
+  # firewalld:
+    # port: 6443/tcp
+    # permanent: yes
+    # state: enabled
+  # when: "'servers' in group_names"
+    
+# - name: Allow port 10250 for kubelet metrics
+  # firewalld:
+    # port: 10250/tcp
+    # permanent: yes
+    # state: enabled
+    
+# - name: Allow port 30000-32767/tcp for nodeports
+  # firewalld:
+    # port: 30000-32767/tcp
+    # permanent: yes
+    # state: enabled
+    
+# - name: Allow port 30000-32767/udp for nodeports
+  # firewalld:
+    # port: 30000-32767/udp
+    # permanent: yes
+    # state: enabled
+
+# - name: Allow traffic from 10.42.0.0/16 to trusted zone for pods
+  # firewalld:
+    # zone: trusted
+    # source: 10.42.0.0/16
+    # permanent: yes
+    # state: enabled
+
+# - name: Allow traffic from 10.43.0.0/16 to trusted zone for services
+  # firewalld:
+    # zone: trusted
+    # source: 10.43.0.0/16
+    # permanent: yes
+    # state: enabled
+    
+# - name: Allow port 179/tcp for node driver ssh provisioning
+  # firewalld:
+    # port: 179/tcp
+    # permanent: yes
+    # state: enabled
+    
+# - name: Allow port 22/tcp for node driver ssh provisioning
+  # firewalld:
+    # port: 22/tcp
+    # permanent: yes
+    # state: enabled
+    
+# - name: Allow port 9796/tcp for monitoring to scrape metrics from linux and windows node-exporters
+  # firewalld:
+    # port: 9796/tcp
+    # permanent: yes
+    # state: enabled
+    
+# - name: Allow port 10254/tcp for ingress controller livenessProbe/readinessProbe
+  # firewalld:
+    # port: 10254/tcp
+    # permanent: yes
+    # state: enabled
+    
+# - name: Allow port 2376/tcp for node driver docker daemon TLS port
+  # firewalld:
+    # port: 2376/tcp
+    # permanent: yes
+    # state: enabled
+    
+# FIXME: opening the above ports not enough for traefik ingress to work. Disabling firewall for now.
+- name: Reload Firewall
+  service:
+    name: firewalld
+    state: stopped

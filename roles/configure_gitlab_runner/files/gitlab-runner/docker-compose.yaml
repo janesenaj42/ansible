@@ -1,0 +1,8 @@
+version: "3.4"
+
+services:
+    gitlab-runner:
+        image: gitlab/gitlab-runner:v16.0.3
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:Z
+        restart: always

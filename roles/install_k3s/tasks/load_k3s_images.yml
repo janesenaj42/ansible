@@ -1,0 +1,30 @@
+---
+- name: Download k3s Docker images
+  get_url:
+    url: "{{ k3s_repo_url }}/{{ k3s_image_name }}" 
+    dest: /data
+    
+- name: Unzip k3s Docker images
+  shell: "docker image load -i /data/{{ k3s_image_name }}"
+  
+- name: Find all Rancher k3s images
+  shell: docker images | grep rancher/ | awk '{print $1":"$2}'
+  register: images_output
+
+- name: Retag all Rancher k3s images
+  shell: docker tag "{{ item }}" "{{ private_docker_repo }}/{{ item }}"
+  with_items: "{{  images_output.stdout_lines  }}"  
+
+- name: Push all k3s images to private repository 
+  shell: docker push "{{ private_docker_repo }}/{{ item }}"
+  with_items: "{{  images_output.stdout_lines  }}" 
+  
+- name: Delete downloaded k3s Docker images file
+  file:
+    path: "/data/{{ k3s_image_name }}"
+    state: absent
+    
+- name: Delete Rancher images from local machine
+  shell: docker rmi -f $(docker images | grep rancher/ | awk '{print $3}')
+  ignore_errors: true
+

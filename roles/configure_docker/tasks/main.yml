@@ -1,0 +1,100 @@
+---
+- name: Uninstall existing Docker
+  yum:
+    name: 
+        - docker
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-common
+    state: removed
+    
+- name: Create rpm folder for Docker
+  file:
+    path: /data/rpm/docker
+    state: directory
+    
+- name: Download and extract Docker rpm packages
+  unarchive:
+    src: "{{ docker_rpm_tar_download }}"
+    dest: /data/rpm/docker
+    remote_src: yes
+
+- name: Find rpm file names and register result
+  find:
+    paths: /data/rpm/docker
+    patterns: "*.rpm"
+  register: rpm_files
+  
+- set_fact:
+    rpm_files_list: "{{ rpm_files.files | map(attribute='path') | list}}"
+    
+- name: Install newer Docker packages
+  yum:
+    name: "{{ rpm_files_list }}"
+    state: present
+  
+- name: Delete downloaded files
+  file:
+    path: /data/updated-docker.tar
+    state: absent
+    
+- name: Delete extracted files
+  file:
+    path: /data/rpm/docker
+    state: absent  
+    
+- name: Enable Docker service
+  service: 
+    name: docker
+    enabled: true
+    
+- name: Start docker service
+  service:
+    name: docker
+    state: started
+    
+- name: Ensure /etc/docker/daemon.json exists
+  file:
+    path: /etc/docker/daemon.json
+    state: touch
+    owner: root
+    group: root
+    modification_time: preserve
+    access_time: preserve
+    
+- name: Check existing /etc/docker/daemon.json settings
+  shell: cat /etc/docker/daemon.json
+  register: daemon_json_content
+  ignore_errors: yes
+  
+- name: Get existing settings from /etc/docker/daemon.json
+  set_fact:
+    original_content: "{{ daemon_json_content.stdout | regex_replace('^\\{|\\}$', '') | trim }}"
+    
+- name: Update /etc/docker/daemon.json content with data-root
+  set_fact:
+    modified_content: |
+        "data-root": "/data/docker",
+        {{ original_content }}
+  when: "'data-root' not in daemon_json_content.stdout and original_content != '' "
+  
+- name: Update /etc/docker/daemon.json content with data-root
+  set_fact:
+    modified_content: |
+        "data-root": "/data/docker"
+  when: "'data-root' not in daemon_json_content.stdout and original_content == '' "
+  
+- name: Write updated daemon content to file
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+  when: "'data-root' not in daemon_json_content.stdout"
+
+- name: Restart Docker Service
+  service:
+    name: docker
+    state: restarted
+    
+- name: Login Docker
+  shell: "docker login {{ docker_private_repo }} -u {{ docker_username }} -p {{ docker_password }}"

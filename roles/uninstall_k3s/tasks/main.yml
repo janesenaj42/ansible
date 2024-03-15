@@ -1,0 +1,9 @@
+---
+- name: Uninstall k3s from agent nodes
+  shell: /usr/local/bin/k3s-agent-uninstall.sh
+  when: "'agents' in group_names"
+
+- name: Uninstall k3s from server nodes
+  shell: /usr/local/bin/k3s-uninstall.sh
+  when: "'servers' in group_names"
+    

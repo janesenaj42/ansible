@@ -1,0 +1,8 @@
+k3s_repo_url: 
+k3s_image_name: k3s-airgap-images-amd64.tar.gz
+k3s_cluster_secret: 
+k3s_master_server_name: k3s-server-1
+k3s_tls_san:
+k3s_lb_url:
+k3s_selinux_rpm_path: 
+private_docker_repo: 

@@ -1,0 +1,7 @@
+---
+- name: Set hostname
+  import_tasks: set_hostname.yml
+
+- name: Set DNS servers
+  import_tasks: set_dns.yml
+  

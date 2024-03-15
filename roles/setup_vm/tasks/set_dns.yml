@@ -1,0 +1,10 @@
+---
+- name: Add DNS server
+  nmcli:
+    conn_name: "{{ eth_conn }}"
+    type: ethernet
+    dns4: "{{ dns_servers }}"
+    state: present
+    
+- name: Apply ethernet changes
+  shell: "nmcli device reapply {{ eth_conn }}"

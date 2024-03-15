@@ -1,0 +1,7 @@
+---
+- name: Install helm
+  import_tasks: install_helm.yml
+
+- name: Install prometheus stack
+  import_tasks: install_prometheus_stack.yml 
+  run_once: true

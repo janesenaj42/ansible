@@ -35,3 +35,4 @@
     
 - name: Mount Partition to {{ mount_point }}
   command: "mount {{ disk_device }} {{ mount_point }}"
+  ignore_errors: yes

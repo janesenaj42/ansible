@@ -1,0 +1,4 @@
+mirrors:
+    docker.io:
+        endpoint:
+            - private.abc.com

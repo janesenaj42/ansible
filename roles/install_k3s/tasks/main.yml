@@ -1,0 +1,77 @@
+# ---
+# Only need to do this once
+- name: Load and push k3s images to private repo
+  import_tasks: load_k3s_images.yml
+  run_once: true
+  #when: "inventory_hostname == k3s_master_server_name"
+  
+- name: Create k3s registry folder
+  file:
+    path: /etc/rancher/k3s
+    state: directory
+  
+# K3s checks /etc/rancher/k3s/registries.yaml for registry configuration
+- name: Configure k3s private registry
+  copy:
+    src: registries.yaml
+    dest: /etc/rancher/k3s/registries.yaml
+    mode: u=r,g=r,o=r
+    
+- name: Download k3s binary
+  get_url:
+    url: "{{ k3s_repo_url }}/k3s" 
+    dest: /usr/local/bin
+    mode: u=rwx,g=rwx,o=rwx
+    
+- name: Download k3s install script
+  get_url:
+    url: "{{ k3s_repo_url }}/install.sh" 
+    dest: /data
+    mode: u=rwx,g=rwx,o=rwx 
+    
+- name: Download SELinux policies
+  yum:
+    state: present
+    name:
+        - container-selinux
+        - selinux-policy-base
+        - "{{ k3s_selinux_rpm_path }}"
+    
+- name: Configure firewall for k3s
+  import_tasks: configure_firewall.yml
+    
+- name: Init first server node
+  shell: "INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC='server --token={{ k3s_cluster_secret }} --tls-san {{ k3s_tls_san }} --selinux --cluster-init' /data/install.sh"
+  when: "'servers' in group_names and inventory_hostname == k3s_master_server_name"
+ 
+- name: Retrieve first server node IP
+  command: "echo {{ hostvars[k3s_master_server_name].ansible_default_ipv4.address }}"
+  register: k3s_master_server_ip
+ 
+- name: Init remaining server nodes and add to k3s cluster
+  shell: "INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC='server --token={{ k3s_cluster_secret }} --tls-san {{ k3s_tls_san }} --selinux --server https://{{ k3s_master_server_ip.stdout }}:6443' /data/install.sh"
+  when: "'servers' in group_names and inventory_hostname != k3s_master_server_name"
+  
+- name: Init agent nodes and add to k3s cluster
+  shell: "INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC='agent --token={{ k3s_cluster_secret }} --selinux --server https://{{ k3s_master_server_ip.stdout }}:6443' /data/install.sh"
+  when: "'agents' in group_names"
+  
+- name: Update kube config with load balancer domain name
+  replace:
+    path: /etc/rancher/k3s/k3s.yaml
+    regexp: '127\.0\.0\.1'
+    replace: "{{ k3s_lb_url }}"
+  when: "'servers' in group_names"
+
+- name: Delete k3s install script
+  file:
+    path: /data/install.sh
+    state: absent
+    
+- name: Set KUBECONFIG env var
+  lineinfile:
+    dest: /etc/environment
+    state: present
+    line: KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+  when: "'servers' in group_names"
+

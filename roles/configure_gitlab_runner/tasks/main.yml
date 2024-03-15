@@ -1,0 +1,10 @@
+---
+- name: Copy files
+  copy:
+    src: gitlab-runner
+    dest: "{{ data_directory }}"
+    
+- name: Change working directory
+  shell:
+    chdir: "{{ data_directory }}/gitlab-runner"
+    cmd: docker compose up -d

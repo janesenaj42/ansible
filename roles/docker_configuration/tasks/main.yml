@@ -1,0 +1,25 @@
+---
+- name: Create Docker Data Directory
+  file:
+    path: /data/docker
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure Docker to use /data/docker
+  lineinfile:
+    path: /etc/docker/daemon.json
+    line: |
+      {
+        "data-root": "/data/docker"
+      }
+    state: present
+    backup: yes
+  notify:
+    - restart docker service
+
+- name: Restart Docker Service
+  service:
+    name: docker
+    state: restarted

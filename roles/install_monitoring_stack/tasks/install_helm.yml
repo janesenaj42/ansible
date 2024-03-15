@@ -1,0 +1,21 @@
+---
+- name: Create temp file for download
+  file:
+    path: "{{ working_dir }}"
+    state: directory
+
+- name: Download and unzip helm
+  unarchive:
+    src: "{{ helm_repo_download_path }}"
+    dest: "{{ working_dir }}"
+    remote_src: yes
+    
+#FIXME: 'linux-amd64' is hardcoded :(
+- name: Copy helm executable to bin
+  shell: "mv {{ working_dir }}/linux-amd64/helm /usr/local/bin/helm"
+  
+- name: Clean up downloaded files
+  file:
+    path: "{{ working_dir }}"
+    state: absent
+    

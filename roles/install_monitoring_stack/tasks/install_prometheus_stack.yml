@@ -1,0 +1,23 @@
+---
+- name: Add chart repo
+  kubernetes.core.helm_repository:
+    name: my-repository
+    repo_url: "{{ helm_repo_url }}"
+        
+- name: Create temp working folder 
+  file:
+    path: "{{ working_dir }}"
+    state: directory
+    
+- name: Copy prometheus stack value yaml to working folder
+  copy:
+    src: kube-prometheus-stack/values.yaml
+    dest: "{{ working_dir }}/kube-prometheus-stack.values.yaml"
+        
+- name: Deploy kube-prometheus-stack
+  shell: "helm upgrade -f {{ working_dir }}/kube-prometheus-stack.values.yaml kube-prometheus-stack my-repository/kube-prometheus-stack -n monitoring --install"
+  
+- name: Clean up working folder
+  file:
+    path: "{{ working_dir }}"
+    state: absent

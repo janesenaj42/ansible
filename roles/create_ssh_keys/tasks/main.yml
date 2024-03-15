@@ -1,0 +1,3 @@
+---
+- name: Create SSH keys
+  shell: ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa <<< y
